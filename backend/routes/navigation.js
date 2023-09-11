@@ -4,58 +4,59 @@ const { ForbiddenError, NotFoundError } = require("../errors");
 const axios = require('axios');
 require('dotenv').config();
 
-// 1. Route Calculation Routes:
-//      /api/route/calculate: Calculate truck-friendly routes based on user input (e.g., starting and ending locations, truck specifications).
-//      /api/route/save: Save calculated routes to a user's profile (requires authentication).
-//      /api/route/history: Retrieve a user's route history (requires authentication).
-// 2. External API Integration Routes:
-//      /api/tomtom/traffic: Fetch real-time traffic data from the TomTom Traffic API.
-//      /api/tomtom/routing: Make requests to the TomTom Routing API for route calculation.
-// 3. User Profile Routes:
-//      /api/user/profile: Manage user profiles, including updating user information (requires authentication).
-//      /api/user/favorites: Allow users to save and retrieve favorite routes or locations (requires authentication).
-// 4. Error Handling Routes:
-//      Implement routes or middleware to handle errors gracefully and provide meaningful error responses to the client.
-
 
 router.get("/", (req, res) => {
     res.send("Welcome to HaulerWAY");
 });
 
+// A function to compare the fastest route
+function compareRoutes(routes) {
+    // Sort routes based on estimated travel time (assuming travel time is in seconds)
+    routes.sort((route1, route2) => route1.summary.travelTimeInSeconds - route2.summary.travelTimeInSeconds);
+
+    const fastestRoute = routes[0];
+
+    return fastestRoute;
+}
+
 // Getting the geolocation for an address
 async function getCoordinates(location) {
     const response = await axios.get(`https://api.tomtom.com/search/2/geocode/${location}.json`, {
-      params: {
-        key: process.env.TOMTOM_API_KEY,
-      },
+        params: {
+            key: process.env.TOMTOM_API_KEY,
+        },
     });
     const coordinates = response.data.results[0].position;
     return coordinates;
 }
 
+
 // Route calculation function
-async function calculateRoute(startCoordinates, endCoordinates) {
+async function calculateRoutes(payload) {
     try {
 
-        const url = `https://api.tomtom.com/routing/1/calculateRoute/${startCoordinates.lat},${startCoordinates.lon}:${endCoordinates.lat},${endCoordinates.lon}/json?key=${process.env.TOMTOM_API_KEY}`;
+        let url;
+          // Construct the URL for route calculation with alternatives
+        if (payload.vehicleLoadType) {
+            url = `https://api.tomtom.com/routing/1/calculateRoute/${payload.startCoordinates.lat},${payload.startCoordinates.lon}:${payload.endCoordinates.lat},${payload.endCoordinates.lon}/json?routeType=fastest&traffic=true&travelMode=${payload.vehicleType}&vehicleCommercial=true&vehicleLoadType=${payload.vehicleLoadType}&key=${process.env.TOMTOM_API_KEY}`;
+        } else {
+            url = `https://api.tomtom.com/routing/1/calculateRoute/${payload.startCoordinates.lat},${payload.startCoordinates.lon}:${payload.endCoordinates.lat},${payload.endCoordinates.lon}/json?routeType=fastest&traffic=true&travelMode=truck&vehicleCommercial=true&key=${process.env.TOMTOM_API_KEY}`;
+        }
 
         const response = await axios.get(url);
-
         const route = response.data.routes[0];
 
         return route;
-
     } catch (error) {
         throw error;
     }
 }
 
 
-
-// POST route for getting the geolocation and calculating routes
-router.post('/calculate-route', async (req, res) => {
+// GET route for getting the geolocation and calculating routes
+router.get('/calculate-route', async (req, res) => {
     try {
-        const { startLocation, endLocation } = req.body; // Extract startLocation and endLocation from the request body
+        const { startLocation, endLocation, vehicleType, vehicleLoadType } = req.body;
 
         // Geocoding logic for startLocation
         const startCoordinates = await getCoordinates(startLocation);
@@ -63,15 +64,28 @@ router.post('/calculate-route', async (req, res) => {
         // Geocoding logic for endLocation
         const endCoordinates = await getCoordinates(endLocation);
 
-        // Calculate the route using obtained coordinates
-        const route = await calculateRoute(startCoordinates, endCoordinates);
 
-        res.json({ route });
+        // Construct the payload with optional vehicleLoadType
+        const payload = {
+            startCoordinates,
+            endCoordinates,
+            vehicleType: vehicleType || 'truck',
+            vehicleLoadType: vehicleLoadType || undefined,
+        };
+
+        // Calculate the route using obtained coordinates and vehicleLoadType
+        const routes = await calculateRoutes(payload);
+
+        // Compare routes to find the fastest route
+        //const fastestRoute = compareRoutes(routes);
+
+        res.json({ routes });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
 
 
 module.exports = router;
