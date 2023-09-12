@@ -9,15 +9,6 @@ router.get("/", (req, res) => {
     res.send("Welcome to HaulerWAY");
 });
 
-// A function to compare the fastest route
-function compareRoutes(routes) {
-    // Sort routes based on estimated travel time (assuming travel time is in seconds)
-    routes.sort((route1, route2) => route1.summary.travelTimeInSeconds - route2.summary.travelTimeInSeconds);
-
-    const fastestRoute = routes[0];
-
-    return fastestRoute;
-}
 
 // Getting the geolocation for an address
 async function getCoordinates(location) {
@@ -36,7 +27,7 @@ async function calculateRoutes(payload) {
     try {
 
         let url;
-          // Construct the URL for route calculation with alternatives
+        // Construct the URL for route calculation with alternatives
         if (payload.vehicleLoadType) {
             url = `https://api.tomtom.com/routing/1/calculateRoute/${payload.startCoordinates.lat},${payload.startCoordinates.lon}:${payload.endCoordinates.lat},${payload.endCoordinates.lon}/json?routeType=fastest&traffic=true&travelMode=${payload.vehicleType}&vehicleCommercial=true&vehicleLoadType=${payload.vehicleLoadType}&key=${process.env.TOMTOM_API_KEY}`;
         } else {
@@ -52,6 +43,25 @@ async function calculateRoutes(payload) {
     }
 }
 
+// Address search endpoint
+router.get('/searchAddress', async (req, res) => {
+    try {
+      const { query } = req.query; // Get the user's search query from the request
+  
+      const limit = 5;
+      const url = `https://www.mapquestapi.com/search/v3/prediction?key=${process.env.MAPQUEST_API_KEY}&limit=${limit}&collection=adminArea,poi,address,category,franchise,airport&q=query`;
+  
+      const response = await axios.get(url);
+  
+      const predictions = response.data.results;
+  
+      res.json(predictions);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+  
 
 // GET route for getting the geolocation and calculating routes
 router.get('/calculate-route', async (req, res) => {
@@ -76,16 +86,11 @@ router.get('/calculate-route', async (req, res) => {
         // Calculate the route using obtained coordinates and vehicleLoadType
         const routes = await calculateRoutes(payload);
 
-        // Compare routes to find the fastest route
-        //const fastestRoute = compareRoutes(routes);
-
         res.json({ routes });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
-
 
 module.exports = router;
