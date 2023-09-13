@@ -50,7 +50,6 @@ router.get('/searchAddress', async (req, res) => {
   
       const limit = 5;
       const url = `https://www.mapquestapi.com/search/v3/prediction?key=${process.env.MAPQUEST_API_KEY}&limit=${limit}&collection=adminArea,poi,address,category,franchise,airport&q=${query}`;
-  
       const response = await axios.get(url);
   
       const predictions = response.data.results;
@@ -86,7 +85,7 @@ router.get('/calculate-route', async (req, res) => {
         // Calculate the route using obtained coordinates and vehicleLoadType
         const routes = await calculateRoutes(payload);
 
-        res.json({ a });
+        res.json({ routes });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
