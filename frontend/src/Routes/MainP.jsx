@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 
 export default function MainP() {
@@ -12,7 +11,7 @@ export default function MainP() {
         <p>
           Haulerway is here to make transportation easier and more efficient for
           everyone. Whether you need to move goods, equipment, or anything else,
-          we've got you covered.
+          we&apos;ve got you covered.
         </p>
       </div>
       <div className="button-container">

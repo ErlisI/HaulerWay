@@ -29,13 +29,13 @@ async function calculateRoutes(payload) {
         let url;
         // Construct the URL for route calculation with alternatives
         if (payload.vehicleLoadType) {
-            url = `https://api.tomtom.com/routing/1/calculateRoute/${payload.startCoordinates.lat},${payload.startCoordinates.lon}:${payload.endCoordinates.lat},${payload.endCoordinates.lon}/json?routeType=fastest&traffic=true&travelMode=${payload.vehicleType}&vehicleCommercial=true&vehicleLoadType=${payload.vehicleLoadType}&key=${process.env.TOMTOM_API_KEY}`;
+            url = `https://api.tomtom.com/routing/1/calculateRoute/${payload.startCoordinates.lat},${payload.startCoordinates.lon}:${payload.endCoordinates.lat},${payload.endCoordinates.lon}/json?routeType=fastest&traffic=true&maxAlternatives=3&travelMode=${payload.vehicleType}&vehicleCommercial=true&vehicleLoadType=${payload.vehicleLoadType}&key=${process.env.TOMTOM_API_KEY}`;
         } else {
-            url = `https://api.tomtom.com/routing/1/calculateRoute/${payload.startCoordinates.lat},${payload.startCoordinates.lon}:${payload.endCoordinates.lat},${payload.endCoordinates.lon}/json?routeType=fastest&traffic=true&travelMode=truck&vehicleCommercial=true&key=${process.env.TOMTOM_API_KEY}`;
+            url = `https://api.tomtom.com/routing/1/calculateRoute/${payload.startCoordinates.lat},${payload.startCoordinates.lon}:${payload.endCoordinates.lat},${payload.endCoordinates.lon}/json?routeType=fastest&traffic=true&maxAlternatives=3&travelMode=truck&vehicleCommercial=true&key=${process.env.TOMTOM_API_KEY}`;
         }
 
         const response = await axios.get(url);
-        const route = response.data.routes[0];
+        const route = response.data.routes;
 
         return route;
     } catch (error) {
@@ -46,11 +46,10 @@ async function calculateRoutes(payload) {
 // Address search endpoint
 router.get('/searchAddress', async (req, res) => {
     try {
-      const { query } = req.query; // Get the user's search query from the request
+      const { query } = req.query;
   
       const limit = 5;
-      const url = `https://www.mapquestapi.com/search/v3/prediction?key=${process.env.MAPQUEST_API_KEY}&limit=${limit}&collection=adminArea,poi,address,category,franchise,airport&q=query`;
-  
+      const url = `https://www.mapquestapi.com/search/v3/prediction?key=${process.env.MAPQUEST_API_KEY}&limit=${limit}&collection=adminArea,poi,address,category,franchise,airport&q=${query}`;
       const response = await axios.get(url);
   
       const predictions = response.data.results;
